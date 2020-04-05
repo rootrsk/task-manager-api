@@ -10,14 +10,14 @@ router.get('/users/me',auth,async(req,res)=>{
 })
 router.post('/users',async(req,res)=>{
     const user = new User(req.body)
+    const token =await user.generateAuthToken()
+    await user.save()
+    sendMail.sendWelcomeMail(user.email,user.name)
+    res.status(201).send({user,token})
     try{
-        const token =await user.generateAuthToken()
-        await user.save()
-        sendMail.sendWelcomeMail(user.email,user.name)
-        res.status(201).send({user,token})
 
     } catch(e){
-        res.status(400).send(e)
+        res.status(505).send(e)
     }
 })
 
@@ -51,7 +51,6 @@ router.patch('/users/me',auth,async(req,res)=>{
     if (!isValidOperation) return res.status(400).send()
     try{
         const user = await User.findById(req.user._id)
-        // const user = await User.findByIdAndUpdate(req.params.id, req.body,{ new : true, runValidators: true })
         updates.forEach((update)=>user[update] = req.body[update])
         await user.save()
         res.send(user)
@@ -64,7 +63,7 @@ router.post('/users/login',async (req,res)=>{
         const user = await User.findByCredentials(req.body.email,req.body.password)
         const token = await user.generateAuthToken()
         res.send({user,token})
-    }catch(e){
+    } catch(e){
         res.status(505).send(e)
     }
 })
